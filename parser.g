@@ -106,7 +106,7 @@ void ASTPrint(AST *a) {
 
 int main() {
     root = NULL;
-    ANTLR(lego(&root), stdin);
+    ANTLR(program(&root), stdin);
     ASTPrint(root);
 }
 >>
@@ -127,11 +127,10 @@ int main() {
 #token POP "POP"
 #token SIZE "SIZE"
 #token EQUAL "\="
-#token AND "AND"
 #token OR "OR"
+#token AND "AND"
 #token NOT "NOT"
 #token BIGGER "\>"
-#token LESS "\<"
 #token MINUS "\-"
 #token SUM "\+"
 #token MULT "\*"
@@ -148,15 +147,46 @@ print: PRINT^ ID;
 empty: EMPTY^ ID;
 pop: POP^ ID ID;
 push: PUSH^ ID ID;
-size: SIZE^ ID;
+size: SIZE^ ID ID;
 asig: ID ASIG^ expr;
 whileLoop: WHILE^ expr DO! ops END!;
 ifCond: IF^ expr THEN! ops (END! | elseCond);
 elseCond: ELSE^ ops END!;
 
-expr: termBool ((AND^ | OR^) termBool)*;
-termBool: operand ((BIGGER^ | LESS^) operand)*;
+expr: termBool ((AND^ | OR^) termBool)*;
+termBool: (NOT^ termBool) | (termNum ((BIGGER^ | EQUAL^) termNum)*);
 termNum: operand ((SUM^ | MINUS^ | MULT^) operand)*;
 operand: NUM | ID;
 
 
+/*
+INPUT X
+INPUT Y
+IF X > 0 OR X = 0 OR NOT 0 > Y THEN
+    Z := 1
+    WHILE X > Y DO
+        X := X - 1
+        Z := Z * Z
+    END
+ELSE
+    Z := 0
+END 
+PRINT Z
+*/
+
+/*
+INPUT X
+EMPTY P
+WHILE X > 0 OR X = 0
+DO
+INPUT Y
+PUSH P Y END
+S := 0
+SIZE P L
+WHILE L > 0
+DO
+  POP P Y
+  S := S + Y
+  L := L - 1
+END PRINT S
+*/
