@@ -50,29 +50,50 @@ indent (c:cs) =
 		then "\n  " ++ indent(cs)
 		else (c:indent(cs))
 
-{-
+data Error = Undefined | Stack | Type
+
+throw :: Error -> Either String a
+throw Undefined = Left "undefined variable"
+throw Stack = Left "empty stack"
+throw Type = Left "type error"
+
 type Value a = Either a [a]
 
 data SymTable a = SymTable [(String, Value a)]
 
+setValue :: SymTable a -> Ident -> Value a -> Either String (SymTable a)
+setValue (SymTable []) id v = Right (SymTable [(id, v)])
+setValue (SymTable ((s, (Left v)):vs)) id (Left value)
+	| id == s 	= Right (SymTable ((s, (Left value)):vs))
+	| otherwise	= setValue (SymTable vs) id (Left value)
+setValue (SymTable ((s, (Right v)):vs)) id (Left value)
+	| id == s 	= throw Type
+	| otherwise = setValue (SymTable vs) id (Left value)
+setValue (SymTable ((s, (Right v)):vs)) id (Right value)
+	| id == s 	= Right (SymTable ((s, (Right value)):vs))
+	| otherwise = setValue (SymTable vs) id (Right value)
+setValue (SymTable ((s, (Left v)):vs)) id (Right value)
+	| id == s 	= throw Type
+	| otherwise	= setValue (SymTable vs) id (Right value)
+
 getValue :: SymTable a -> Ident -> Maybe (Value a)
-getValue id (SymTable []) = Nothing
-getValue id (SymTable ((s, v):vs))
+getValue (SymTable []) id = Nothing
+getValue (SymTable ((s, v):vs)) id
 	| id == s 	= Just v
-	| otherwise = getValue id (SymTable vs)
+	| otherwise = getValue (SymTable vs) id
 
 getNum :: SymTable a -> Ident -> Maybe a
-getNum id t = extractNum (getValue id t)
+getNum t id = extractNum (getValue t id)
 	where
 		extractNum :: (Maybe (Value a)) -> Maybe a
 		extractNum Nothing = Nothing
-		extractNum Just (Right p) = Nothing
-		extractNum Just (Left a) = Just a
+		extractNum (Just (Right p)) = Nothing
+		extractNum (Just (Left a)) = Just a
 
 class Evaluable e where
 	eval :: (Num a, Ord a) => (Ident -> Maybe a) -> (e a) -> (Either String a)
 	--typeCheck :: (Ident -> String) -> (e a) -> Bool
-
+{-
 instance Evaluable NExpr where
 	eval f (Const value) = Right value
 	eval f (Var id) = 
@@ -85,4 +106,31 @@ eval :: NExpr a -> (Either Stirng a)
 eval expr = eval getNum expr
 
 eval :: BExpr
+
+input :: 
 -}
+
+
+interpretCommand :: (Num a, Ord a) => SymTable a -> [a] -> Command a -> ((Either String [a]), SymTable a, [a])
+interpretCommand t input (Seq []) = (Right [], t, input)
+interpretCommand t input (Seq (c:cs)) = processResult (interpretCommand t input c) cs
+	where
+		processResult :: (Num a, Ord a) => ((Either String [a]), SymTable a, [a]) -> [Command a] -> ((Either String [a]), SymTable a, [a])
+		processResult (Left error, t, input) _ = (Left error, t, input)
+		processResult (Right output, t, input) cs = concatResult output (interpretCommand t input (Seq cs))
+
+		concatResult :: (Num a, Ord a) => [a] -> ((Either String [a]), SymTable a, [a]) -> ((Either String [a]), SymTable a, [a])
+		concatResult _ (Left error, t, input) = (Left error, t, input)
+		concatResult output1 (Right output2, t, input) = (Right (output1 ++ output2), t, input)
+interpretCommand t (x:xs) (Input id) = (Left "hello", t, (x:xs))--input (setValue t id x)
+--	where
+--		input :: ((Either String [a]), SymTable a, [a])
+
+interpretProgram :: (Num a, Ord a) => [a] -> Command a -> (Either String [a])
+interpretProgram input commands = first (interpretCommand (SymTable []) input commands)
+	where
+		first :: ((Either String [a]), SymTable a, [a]) -> (Either String [a])
+		first (result, _, _) = result
+
+
+
