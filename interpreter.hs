@@ -39,13 +39,50 @@ instance (Show a) => Show (Command a) where
 	show (Push p value) = "PUSH " ++ (id p) ++ " " ++ (show value) ++ "\n"
 	show (Pop p var) = "POP " ++ (id p) ++ " " ++ (id var) ++ "\n"
 	show (Size p var) = "SIZE " ++ (id p) ++ " " ++ (id var) ++ "\n"
-	show (Seq commands) = "  " ++ indent (foldr (\a b -> (show a) ++ b) "" commands)
-		where 
-			indent :: String -> String
-			indent "" = ""
-			indent (c:cs) = 
-				if c == '\n'
-					then "\n  " ++ indent(cs)
-					else (c:indent(cs))
-	show (Loop expr inst) = "WHILE " ++ (show expr) ++ "\nDO\n" ++ (show inst) ++ "END\n"
-	show (Cond expr instIf instElse) = ""
+	show (Seq commands) = foldr (\a b -> (show a) ++ b) "" commands		
+	show (Loop expr inst) = "WHILE " ++ (show expr) ++ "\nDO" ++ (indent ("\n" ++ (show inst))) ++ "END\n"
+	show (Cond expr instIf instElse) = "IF " ++ (show expr) ++ " THEN" ++ (indent ("\n" ++ (show instIf))) ++ "ELSE" ++ (indent ("\n" ++ (show instElse))) ++ "END\n"
+
+indent :: String -> String
+indent "" = ""
+indent (c:cs) = 
+	if (c == '\n') && (cs /= [])
+		then "\n  " ++ indent(cs)
+		else (c:indent(cs))
+
+{-
+type Value a = Either a [a]
+
+data SymTable a = SymTable [(String, Value a)]
+
+getValue :: SymTable a -> Ident -> Maybe (Value a)
+getValue id (SymTable []) = Nothing
+getValue id (SymTable ((s, v):vs))
+	| id == s 	= Just v
+	| otherwise = getValue id (SymTable vs)
+
+getNum :: SymTable a -> Ident -> Maybe a
+getNum id t = extractNum (getValue id t)
+	where
+		extractNum :: (Maybe (Value a)) -> Maybe a
+		extractNum Nothing = Nothing
+		extractNum Just (Right p) = Nothing
+		extractNum Just (Left a) = Just a
+
+class Evaluable e where
+	eval :: (Num a, Ord a) => (Ident -> Maybe a) -> (e a) -> (Either String a)
+	--typeCheck :: (Ident -> String) -> (e a) -> Bool
+
+instance Evaluable NExpr where
+	eval f (Const value) = Right value
+	eval f (Var id) = 
+
+instance Evaluable BExpr where
+	eval f (OR x y) = (eval f x) || (eval f y)
+	eval f (Gt x y) = (eval f x) < (eval f y)
+
+eval :: NExpr a -> (Either Stirng a)
+eval expr = eval getNum expr
+
+eval :: BExpr
+-}

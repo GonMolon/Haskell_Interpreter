@@ -106,18 +106,18 @@ void ASTPrint(AST* a) {
 void printExpr(AST* a) {
     cout << "(";
     if(a->kind == "NOT") {
-        cout << "NOT";
+        cout << "NOT ";
         printExpr(child(a, 0));
     } else if(a->kind == "AND" || a->kind == "OR") {
         cout << a->kind << " ";
         printExpr(child(a, 0));
         printExpr(child(a, 1));
     } else if(a->kind == ">") {
-        cout << "Gt";
+        cout << "Gt ";
         printExpr(child(a, 0));
         printExpr(child(a, 1));
     } else if(a->kind == "=") {
-        cout << "Eq";
+        cout << "Eq ";
         printExpr(child(a, 0));
         printExpr(child(a, 1));
     } else if(a->kind == "+") {
