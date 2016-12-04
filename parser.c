@@ -139,16 +139,16 @@ void print(AST* a) {
   cout << "(";
   if(a->kind == "list") {
     cout << "Seq [";
-    AST* child = child(a, 0);
+    AST* b = child(a, 0);
     bool first = true;
-    while(child != NULL) {
-      print(child);
+    while(b != NULL) {
+      print(b);
       if(!first) {
         cout << ",";
       } else {
         first = false;
       }
-      child = child->right;
+      b = b->right;
     }
     cout << "]";
   } else if(a->kind == "INPUT") {
