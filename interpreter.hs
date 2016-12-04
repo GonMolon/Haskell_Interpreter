@@ -31,25 +31,21 @@ instance (Show a) => Show (BExpr a) where
 	show (Gt x y) = (show x) ++ " > " ++ (show y)
 	show (Eq x y) = (show x) ++ " = " ++ (show y)
 
-{-
-insertIndent :: Int -> String
-insertIndent level
-	| level == 0 	= ""
-	| otherwise 	= "  " ++ (insertIndent (level - 1))
-
-indent :: (Command a) -> Int -> String
-indent (Seq (c:cs)) level = (insertIndent level) ++ 
--}
-
 instance (Show a) => Show (Command a) where
 	show (Assign var value) = (id var) ++ " := " ++ (show value) ++ "\n"
 	show (Input var) = "INPUT " ++ (id var) ++ "\n"
 	show (Print var) = "PRINT " ++ (id var) ++ "\n"
 	show (Empty var) = "EMPTY " ++ (id var) ++ "\n"
-	show (Push p value) = "PUSH " ++ (show p) ++ (show value) ++ "\n"
-	show (Pop p var) = "POP " ++ (show p) ++ (id var) ++ "\n"
-	show (Size p var) = "SIZE " ++ (show p) ++ (id var) ++ "\n"
-	show (Seq commands) = foldr (\a b -> b ++ (show a)) "" commands
-		--where indent s = map (\x -> if x == "\n" then "\n  ") 
-	--show (Loop expr inst) = "WHILE " ++ expr ++ "\n" ++ "DO\n" ++ (indent inst 0) ++ "END\n"
-	--show (Cond expr instIf instElse) = 
+	show (Push p value) = "PUSH " ++ (id p) ++ " " ++ (show value) ++ "\n"
+	show (Pop p var) = "POP " ++ (id p) ++ " " ++ (id var) ++ "\n"
+	show (Size p var) = "SIZE " ++ (id p) ++ " " ++ (id var) ++ "\n"
+	show (Seq commands) = "  " ++ indent (foldr (\a b -> (show a) ++ b) "" commands)
+		where 
+			indent :: String -> String
+			indent "" = ""
+			indent (c:cs) = 
+				if c == '\n'
+					then "\n  " ++ indent(cs)
+					else (c:indent(cs))
+	show (Loop expr inst) = "WHILE " ++ (show expr) ++ "\nDO\n" ++ (show inst) ++ "END\n"
+	show (Cond expr instIf instElse) = ""

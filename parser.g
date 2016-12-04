@@ -103,6 +103,43 @@ void ASTPrint(AST* a) {
     }
 }
 
+void printExpr(AST* a) {
+    cout << "(";
+    if(a->kind == "NOT") {
+        cout << "NOT";
+        printExpr(child(a, 0));
+    } else if(a->kind == "AND" || a->kind == "OR") {
+        cout << a->kind << " ";
+        printExpr(child(a, 0));
+        printExpr(child(a, 1));
+    } else if(a->kind == ">") {
+        cout << "Gt";
+        printExpr(child(a, 0));
+        printExpr(child(a, 1));
+    } else if(a->kind == "=") {
+        cout << "Eq";
+        printExpr(child(a, 0));
+        printExpr(child(a, 1));
+    } else if(a->kind == "+") {
+        cout << "Plus ";
+        printExpr(child(a, 0));
+        printExpr(child(a, 1));
+    } else if(a->kind == "-") {
+        cout << "Minus ";
+        printExpr(child(a, 0));
+        printExpr(child(a, 1));
+    } else if(a->kind == "*") {
+        cout << "Times ";
+        printExpr(child(a, 0));
+        printExpr(child(a, 1));
+    } else if(a->kind == "ID") {
+        cout << "Var \"" << a->text << "\"";
+    } else if(a->kind == "NUM") {
+        cout << "Const " << a->text;
+    }
+    cout << ")";
+}
+
 void print(AST* a) {
     cout << "(";
     if(a->kind == "list") {
@@ -110,12 +147,12 @@ void print(AST* a) {
         AST* b = child(a, 0);
         bool first = true;
         while(b != NULL) {
-            print(b);
             if(!first) {
-                cout << ",";
+                cout << ", ";
             } else {
                 first = false;
             }
+            print(b);
             b = b->right;
         }
         cout << "]";
@@ -125,7 +162,7 @@ void print(AST* a) {
     } else if(a->kind == ":=") {
         cout << "Assign ";
         print(child(a, 0));
-        print(child(a, 1));
+        printExpr(child(a, 1));
     } else if(a->kind == "PRINT") {
         cout << "Print ";
         print(child(a, 0));
@@ -136,7 +173,7 @@ void print(AST* a) {
     } else if(a->kind == "PUSH") {
         cout << "Push ";
         print(child(a, 0));
-        print(child(a, 1));
+        printExpr(child(a, 1));
     } else if(a->kind == "SIZE") {
         cout << "Size ";
         print(child(a, 0));
@@ -146,48 +183,17 @@ void print(AST* a) {
         print(child(a, 0));
     } else if(a->kind == "WHILE") {
         cout << "Loop ";
-        print(child(a, 0));
+        printExpr(child(a, 0));
         print(child(a, 1));
     } else if(a->kind == "IF") {
         cout << "Cond ";
-        print(child(a, 0));
+        printExpr(child(a, 0));
         print(child(a, 1));
         print(child(a, 2));
-    } else if(a->kind == "NOT") {
-        cout << "NOT";
-        print(child(a, 0));
-    } else if(a->kind == "AND" || a->kind == "OR") {
-        cout << a->kind << " ";
-        print(child(a, 0));
-        print(child(a, 1));
-    } else if(a->kind == ">") {
-        cout << "Gt";
-        print(child(a, 0));
-        print(child(a, 1));
-    } else if(a->kind == "=") {
-        cout << "Eq";
-        print(child(a, 0));
-        print(child(a, 1));
-    } else if(a->kind == "+") {
-        cout << "Plus ";
-        print(child(a, 0));
-        print(child(a, 1));
-    } else if(a->kind == "-") {
-        cout << "Minus ";
-        print(child(a, 0));
-        print(child(a, 1));
-    } else if(a->kind == "*") {
-        cout << "Times ";
-        print(child(a, 0));
-        print(child(a, 1));
     } else if(a->kind == "ID") {
         cout << "\"" << a->text << "\"";
-    } else if(a->kind == "VAR") {
-        cout << "Var \"" << a->text << "\"";
-    } else if(a->kind == "NUM") {
-        cout << "Const " << a->text;
-    } 
-    cout << ") ";
+    }
+    cout << ")";
 }
 
 int main() {
@@ -223,7 +229,6 @@ int main() {
 #token MULT "\*"
 #token NUM "[0-9]+"
 #token ID "[a-zA-Z][0-9a-zA-Z]*"
-#token VAR "[a-zA-Z][0-9a-zA-Z]*"
 #token SPACE "[\ \n]" << zzskip();>>
 
 program: ops;
@@ -243,7 +248,7 @@ ifCond: IF^ expr THEN! ops ELSE! ops END!;
 expr: termBool ((AND^ | OR^) termBool)*;
 termBool: (NOT^ termBool) | (termNum ((BIGGER^ | EQUAL^) termNum)*);
 termNum: operand ((SUM^ | MINUS^ | MULT^) operand)*;
-operand: NUM | VAR;
+operand: NUM | ID;
 
 
 /*
