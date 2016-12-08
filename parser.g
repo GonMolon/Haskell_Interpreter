@@ -239,7 +239,7 @@ input: INPUT^ ID;
 print: PRINT^ ID;
 empty: EMPTY^ ID;
 pop: POP^ ID ID;
-push: PUSH^ ID ID;
+push: PUSH^ ID termNum;
 size: SIZE^ ID ID;
 assign: ID ASSIGN^ expr;
 whileLoop: WHILE^ expr DO! ops END!;
@@ -271,8 +271,10 @@ INPUT X
 EMPTY P
 WHILE X > 0 OR X = 0
 DO
-INPUT Y
-PUSH P Y END
+  INPUT Y
+  PUSH P Y
+  X := X - 1
+END
 S := 0
 SIZE P L
 WHILE L > 0
@@ -280,5 +282,6 @@ DO
   POP P Y
   S := S + Y
   L := L - 1
-END PRINT S
+END
+PRINT S
 */
