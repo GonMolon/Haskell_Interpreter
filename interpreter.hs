@@ -1,3 +1,6 @@
+import System.IO
+import System.Random
+
 type Ident = String
 
 data NExpr a = 
@@ -15,21 +18,21 @@ data Command a =
 	Seq [Command a] | Cond (BExpr a) (Command a) (Command a) | Loop (BExpr a) (Command a)
 	deriving(Read)
 
-instance (Show a) => Show (NExpr a) where
+instance Show a => Show (NExpr a) where
 	show (Var id) = id
 	show (Const value) = show value
 	show (Plus x y) = (show x) ++ " + " ++ (show y)
 	show (Minus x y) = (show x) ++ " - " ++ (show y)
 	show (Times x y) = (show x) ++ " * " ++ (show y)
 
-instance (Show a) => Show (BExpr a) where
+instance Show a => Show (BExpr a) where
 	show (OR x y) = (show x) ++ " OR " ++ (show y)
 	show (AND x y) = (show x) ++ " AND " ++ (show y)
 	show (NOT x) = "NOT " ++ (show x)
 	show (Gt x y) = (show x) ++ " > " ++ (show y)
 	show (Eq x y) = (show x) ++ " = " ++ (show y)
 
-instance (Show a) => Show (Command a) where
+instance Show a => Show (Command a) where
 	show (Assign id value) = id ++ " := " ++ (show value) ++ "\n"
 	show (Input id) = "INPUT " ++ id ++ "\n"
 	show (Print id) = "PRINT " ++ id ++ "\n"
@@ -106,7 +109,7 @@ evaluate t expr = if typeCheck (getType t) expr
 	then eval (getNum t) expr
 	else throw Undefined
 
-i_eval :: (Either String a) -> (a -> a -> b) -> (Either String a) -> (Either String b)
+i_eval :: Either String a -> (a -> a -> b) -> (Either String a) -> (Either String b)
 i_eval (Left error) op _ = Left error
 i_eval _ op (Left error) = Left error
 i_eval (Right x) op (Right y) = Right (op x y)
@@ -150,13 +153,16 @@ instance Evaluable BExpr where
 	eval f (Eq x y) = fmap (fromBool) (i_eval (eval f x) (==) (eval f y))
 	eval f (Gt x y) = fmap (fromBool) (i_eval (eval f x) (>) (eval f y))
 
-fromBool :: (Num a) => Bool -> a
+fromBool :: Num a => Bool -> a
 fromBool b = if b then 1 else 0
 
 -------------------------------------------------------------------------------------------------------------
 
-random :: Num a => a
-random = 4
+generateRandom :: Num a => a
+generateRandom = 4
+--generateRandom :: IO a
+--generateRandom = randomRIO (-1000, 1000)
+
 
 type Result a = ((Either String [a]), SymTable a, [a])
 
@@ -172,7 +178,7 @@ interpretCommand t1 input1 (Seq (c:cs)) = concatResults resultAct (interpretComm
 		concatResults _ (Left error, t, input) = (Left error, t, input)
 		concatResults (Right output1, _, _) (Right output2, t, input) = (Right (output1 ++ output2), t, input)
 		
-interpretCommand t [] (Input c) = interpretCommand t [random] (Input c)
+interpretCommand t [] (Input c) = interpretCommand t [generateRandom] (Input c)
 interpretCommand t1 (x:xs) (Input id) = case setValue t1 id (Left x) of
 	Left error 	-> (Left error, t1, xs)
 	Right t2 	-> (Right [], t2, xs)
@@ -226,7 +232,7 @@ interpretCommand t1 input (Size id1 id2) = case getStack t1 id1 of
 		Left error 	-> (Left error, t1, input)
 		Right t2 	-> (Right [], t2, input)
 	where
-		length :: (Num a) => [a] -> a
+		length :: Num a => [a] -> a
 		length [] = 0
 		length (x:xs) = 1 + length xs
 
@@ -235,4 +241,34 @@ interpretProgram input commands = result
 	where
 		(result, _, _) = interpretCommand (SymTable []) input commands
 
+{-
+getProgram :: IO String
+getProgram = readFile "./programhs.txt"
 
+readProgram :: Read a => Int -> IO (Command a)
+readProgram 0 = do
+	l <- getProgram
+	return (read l :: Command Int)
+--readProgram 0 = (getProgram >>= read)::IO (Command Int)
+--readProgram 1 = getProgram >>= read::IO (Command Double)
+
+main = do
+	l <- getLine
+	let typeOption = read l
+	program <- readProgram (typeOption)
+	print program
+-}
+
+test :: Command a
+test = (Input "hola")::Command Int
+
+{-
+getProgram :: Read a => Int -> String -> IO (Command a)
+getProgram 0 l = return (read(l)::Command Int)
+
+main = do
+	l <- getLine
+	o <- getLine
+	p <- getProgram (read o) l
+	print p
+-}
