@@ -53,12 +53,12 @@ indent (c:cs) =
 
 -------------------------------------------------------------------------------------------------------------
 
-data Error = Undefined | Stack | Type
+data Error = Undefined | EmptyStack | TypeError
 
 throw :: Error -> Either String a
 throw Undefined = Left "undefined variable"
-throw Stack = Left "empty stack"
-throw Type = Left "type error"
+throw EmptyStack = Left "empty stack"
+throw TypeError = Left "type error"
 
 type Value a = Either a [a]
 
@@ -80,10 +80,10 @@ setValue (SymTable ((s, elem):elems)) id value
 	| otherwise = case elem of
 		(Right _)	-> case value of
 			x@(Right v) 	-> Right (SymTable ((id, x):elems))
-			_			-> throw Type
+			_			-> throw TypeError
 		(Left _)	-> case value of
 			x@(Left v)	-> Right (SymTable ((id, x):elems))
-			_			-> throw Type
+			_			-> throw TypeError
 
 getNum :: SymTable a -> Ident -> Maybe a
 getNum (SymTable l) id = case (lookup id l) of
@@ -93,7 +93,7 @@ getNum (SymTable l) id = case (lookup id l) of
 getStack :: SymTable a -> Ident -> Either String [a]
 getStack (SymTable l) id = case (lookup id l) of
 	Just (Right value)	-> Right value
-	Just (Left _)		-> throw Type
+	Just (Left _)		-> throw TypeError
 	Nothing				-> throw Undefined
 
 -------------------------------------------------------------------------------------------------------------
@@ -165,7 +165,7 @@ interpretCommand t1 (x:xs) (Input id) = case setValue t1 id (Left x) of
 
 interpretCommand (SymTable l) input (Print id) = case lookup id l of
 	Nothing 		-> (throw Undefined, SymTable l, input)
-	Just (Right _)	-> (throw Type, SymTable l, input)
+	Just (Right _)	-> (throw TypeError, SymTable l, input)
 	Just (Left x) 	-> (Right [x], SymTable l, input)
 
 interpretCommand t1 input (Assign id expr) = case evaluate t1 expr of
@@ -200,6 +200,7 @@ interpretCommand t1 input (Push id expr) = case getStack t1 id of
 
 interpretCommand t1 input (Pop p id) = case getStack t1 p of
 	Left error 		-> (Left error, t1, input)
+	Right ([])		-> (throw EmptyStack, t1, input)
 	Right (x:xs)	-> case setValue t1 id (Left x) of
 		Left error 	-> (Left error, t1, input)
 		Right t2 	-> case setValue t2 p (Right xs) of
@@ -229,35 +230,66 @@ readProgram = do
 	hClose h
 	return c
 
-execute :: (Show a, Num a, Ord a, Random a) => (Command a) -> Int -> Int -> IO ()
-execute program typeExec seed = putStrLn (show (interpretProgram ([]++(randoms (mkStdGen seed))) program))
+printList :: Show a => [a] -> String
+printList l = foldl (\a b -> a ++ " " ++ (show b)) "" l
+
+infiniteList :: (Num a, Random a) => Int -> [a]
+infiniteList seed = randomRs (-1000, 1000) (mkStdGen seed)
+
+i_executeTests :: (Show a, Num a, Ord a, Random a) => Command a -> Int -> Int -> Int -> IO String
+i_executeTests _ 0 _ _ = return ""
+i_executeTests program i k seed = do
+	let input = infiniteList seed
+	let result = case interpretCommand (SymTable []) (input ++ (infiniteList seed)) program of
+		(Left error, _, _)			-> "Execution error in test " ++ (show testNum) ++ ": " ++ error
+		(Right output, _, unread) 	->
+			"Input test " ++ (show testNum) ++ ": " ++ (printList (getInput input unread)) ++ "\n" ++
+			"Outut test " ++ (show testNum) ++ ": " ++ (printList output) ++ "\n"
+	i_executeTests program (i-1) k (head (infiniteList seed)) >>= (\r -> return (result ++ r))
+	where
+		testNum = (k - i + 1)
+		getInput :: Eq a => [a] -> [a] -> [a]
+		getInput (i:is) unread@(u:us)
+			| i == u 	= []
+			| otherwise = (i:(getInput is unread))
+
+executeTests p k seed = i_executeTests p k k seed
+
+execute :: (Show a, Read a, Num a, Ord a, Random a) => (Command a) -> Int -> Int -> IO String
+execute program 0 seed = do
+	putStrLn ("Insert the input list (separated by spaces)")
+	l <- getLine
+	let input = map read (words l)
+	case interpretProgram (input ++ (infiniteList seed)) program of
+		Left error 		-> return ("Execution error: " ++ error)
+		Right output 	-> return ("Outut: " ++ (printList output))
+execute program 1 seed = executeTests program 1 seed
+execute program 2 seed = do
+	putStrLn ("How many tests do you want to execute?")
+	l <- getLine
+	let k = read l
+	executeTests program k seed
+
 
 main = do
-	putStrLn("Select the data type:")
-	putStrLn("   0 : Int")
-	putStrLn("   1 : Double")
+	putStrLn ("Select the data type:")
+	putStrLn ("   0 : Int")
+	putStrLn ("   1 : Double")
 	l <- getLine
 	let typeOption = read l
-	putStrLn("Insert a random seed:")
+	putStrLn ("Insert the execution type:")
+	putStrLn ("   0 : Manual")
+	putStrLn ("   1 : Test")
+	putStrLn ("   2 : Multiple test")
+	l <- getLine
+	let execType = read l
+	putStrLn ("Insert a random seed:")
 	l <- getLine
 	let seed = read l
-	putStrLn("Insert the execution type:")
-	l <- getLine
-	let typeExec = read l
 	if typeOption == 0
 		then do 
 			program <- readProgram::IO (Command Int)
-			execute program typeExec seed
+			(execute program execType seed) >>= putStrLn
 		else do
 			program <- readProgram::IO (Command Double)
-			execute program typeExec seed
-{-}
-getProgram :: Read a => Int -> String -> IO (Command a)
-getProgram 0 l = return (read(l)::Command Int)
-
-main = do
-	l <- getLine
-	o <- getLine
-	p <- getProgram (read o) l
-	print p
--}
+			(execute program execType seed) >>= putStrLn

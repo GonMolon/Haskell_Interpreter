@@ -71,38 +71,6 @@ AST* child(AST* a, int n) {
     return c;
 }
 
-/// print AST, recursively, with indentation
-void ASTPrintIndent(AST* a, string s) {
-    if(a == NULL) {
-        return;
-    }
-    cout << a->kind;
-    if(a->text != "") {
-        cout << "(" << a->text << ")";
-    }
-    cout << endl;
-    AST* i = a->down;
-    while(i != NULL && i->right != NULL) {
-        cout<<s+"  \\__";
-        ASTPrintIndent(i, s + "  |" + string(i->kind.size() + i->text.size(), ' '));
-        i=i->right;
-    }
-    if(i != NULL) {
-        cout<<s+"  \\__";
-        ASTPrintIndent(i, s + "   " + string(i->kind.size() + i->text.size(), ' '));
-        i = i->right;
-    }
-}
-
-/// print AST 
-void ASTPrint(AST* a) {
-    while(a != NULL) {
-        cout << " ";
-        ASTPrintIndent(a, "");
-        a = a->right;
-    }
-}
-
 void printExpr(AST* a) {
     cout << "(";
     if(a->kind == "NOT") {
@@ -199,7 +167,6 @@ void print(AST* a) {
 int main() {
     root = NULL;
     ANTLR(program(&root), stdin);
-    ASTPrint(root);
     print(root);
 }
 >>
