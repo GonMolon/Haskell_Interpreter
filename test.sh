@@ -5,7 +5,7 @@ rm -f programhs.txt
 PATH=$(dirname "$0")
 
 if [ $# -lt 1 ]; then
-	echo "Usage: ./test.sh program [inputFile]"
+	echo "Usage: ./test.sh programFile [inputFile]"
 	exit
 fi
 

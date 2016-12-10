@@ -133,7 +133,7 @@ void print(AST* a) {
         printExpr(child(a, 1));
     } else if(a->kind == "PRINT") {
         cout << "Print ";
-        print(child(a, 0));
+        printExpr(child(a, 0));
     } else if(a->kind == "POP") {
         cout << "Pop ";
         print(child(a, 0));
@@ -203,7 +203,7 @@ ops: (op)* <<#0=createASTlist(_sibling);>>;
 op: whileLoop | ifCond | input | print | empty | size | pop | push | assign;
 
 input: INPUT^ ID;
-print: PRINT^ ID;
+print: PRINT^ termNum;
 empty: EMPTY^ ID;
 pop: POP^ ID ID;
 push: PUSH^ ID termNum;

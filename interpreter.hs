@@ -14,7 +14,7 @@ data BExpr a =
 	deriving(Read)
 	
 data Command a = 
-	Assign Ident (NExpr a) | Input Ident | Print Ident | Empty Ident | Push Ident (NExpr a) | Pop Ident Ident | Size Ident Ident |
+	Assign Ident (NExpr a) | Input Ident | Print (NExpr a) | Empty Ident | Push Ident (NExpr a) | Pop Ident Ident | Size Ident Ident |
 	Seq [Command a] | Cond (BExpr a) (Command a) (Command a) | Loop (BExpr a) (Command a)
 	deriving(Read)
 
@@ -33,11 +33,11 @@ instance Show a => Show (BExpr a) where
 	show (Eq x y) = (show x) ++ " = " ++ (show y)
 
 instance Show a => Show (Command a) where
-	show (Assign id value) = id ++ " := " ++ (show value) ++ "\n"
+	show (Assign id expr) = id ++ " := " ++ (show expr) ++ "\n"
 	show (Input id) = "INPUT " ++ id ++ "\n"
-	show (Print id) = "PRINT " ++ id ++ "\n"
+	show (Print expr) = "PRINT " ++ (show expr) ++ "\n"
 	show (Empty id) = "EMPTY " ++ id ++ "\n"
-	show (Push p value) = "PUSH " ++ p ++ " " ++ (show value) ++ "\n"
+	show (Push p expr) = "PUSH " ++ p ++ " " ++ (show expr) ++ "\n"
 	show (Pop p id) = "POP " ++ p ++ " " ++ id ++ "\n"
 	show (Size p id) = "SIZE " ++ p ++ " " ++ id ++ "\n"
 	show (Seq commands) = foldr (\a b -> (show a) ++ b) "" commands		
@@ -163,10 +163,9 @@ interpretCommand t1 (x:xs) (Input id) = case setValue t1 id (Left x) of
 	Left error 	-> (Left error, t1, xs)
 	Right t2 	-> (Right [], t2, xs)
 
-interpretCommand (SymTable l) input (Print id) = case lookup id l of
-	Nothing 		-> (throw Undefined, SymTable l, input)
-	Just (Right _)	-> (throw TypeError, SymTable l, input)
-	Just (Left x) 	-> (Right [x], SymTable l, input)
+interpretCommand t input (Print expr) = case evaluate t expr of
+	Left error 	-> (Left error, t, input)
+	Right value -> (Right [value], t, input)
 
 interpretCommand t1 input (Assign id expr) = case evaluate t1 expr of
 	Left error 	-> (Left error, t1, input)
