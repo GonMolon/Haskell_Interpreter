@@ -79,25 +79,19 @@ setValue (SymTable ((s, elem):elems)) id value
 	| id /= s 	= fmap (\(SymTable elemsMod) -> SymTable ((s, elem):elemsMod)) (setValue (SymTable elems) id value)
 	| otherwise = case elem of
 		(Right _)	-> case value of
-			(Right v) 	-> Right (SymTable ((id, Right v):elems))
+			x@(Right v) 	-> Right (SymTable ((id, x):elems))
 			_			-> throw Type
 		(Left _)	-> case value of
-			(Left v)	-> Right (SymTable ((id, Left v):elems))
+			x@(Left v)	-> Right (SymTable ((id, x):elems))
 			_			-> throw Type
 
-getValue :: SymTable a -> Ident -> Maybe (Value a)
-getValue (SymTable []) id = Nothing
-getValue (SymTable ((s, v):vs)) id
-	| id == s 	= Just v
-	| otherwise = getValue (SymTable vs) id
-
 getNum :: SymTable a -> Ident -> Maybe a
-getNum t id = case (getValue t id) of
+getNum (SymTable l) id = case (lookup id l) of
 	Just (Left value)	-> Just value
 	_					-> Nothing
 
 getStack :: SymTable a -> Ident -> Either String [a]
-getStack t id = case (getValue t id) of
+getStack (SymTable l) id = case (lookup id l) of
 	Just (Right value)	-> Right value
 	Just (Left _)		-> throw Type
 	Nothing				-> throw Undefined
@@ -113,13 +107,6 @@ i_eval :: Either String a -> (a -> a -> b) -> (Either String a) -> (Either Strin
 i_eval (Left error) op _ = Left error
 i_eval _ op (Left error) = Left error
 i_eval (Right x) op (Right y) = Right (op x y)
-
-boolEval :: (Num a, Eq a) => (Either String a) -> (Bool -> Bool -> Bool) -> (Either String a) -> (Either String a)
-boolEval (Left error) _ _ = Left error
-boolEval _ _ (Left error) = Left error
-boolEval (Right x) op (Right y) = if op (x /= 0) (y /= 0)
-	then Right 1
-	else Right 0
 
 class Evaluable e where
 	eval :: (Num a, Ord a) => (Ident -> Maybe a) -> (e a) -> (Either String a)
@@ -158,12 +145,6 @@ fromBool b = if b then 1 else 0
 
 -------------------------------------------------------------------------------------------------------------
 
-generateRandom :: Num a => a
-generateRandom = 4
---generateRandom :: IO a
---generateRandom = randomRIO (-1000, 1000)
-
-
 type Result a = ((Either String [a]), SymTable a, [a])
 
 interpretCommand :: (Num a, Ord a) => SymTable a -> [a] -> Command a -> Result a
@@ -174,19 +155,18 @@ interpretCommand t1 input1 (Seq (c:cs)) = concatResults resultAct (interpretComm
 		resultAct = interpretCommand t1 input1 c
 		(_, t2, input2) = resultAct
 		concatResults :: Result a -> Result a -> Result a
-		concatResults (Left error, t, input) _ = (Left error, t, input)
-		concatResults _ (Left error, t, input) = (Left error, t, input)
+		concatResults (e@(Left error), t, input) _ = (e, t, input)
+		concatResults _ (e@(Left error), t, input) = (e, t, input)
 		concatResults (Right output1, _, _) (Right output2, t, input) = (Right (output1 ++ output2), t, input)
 		
-interpretCommand t [] (Input c) = interpretCommand t [generateRandom] (Input c)
 interpretCommand t1 (x:xs) (Input id) = case setValue t1 id (Left x) of
 	Left error 	-> (Left error, t1, xs)
 	Right t2 	-> (Right [], t2, xs)
 
-interpretCommand t input (Print id) = case getValue t id of
-	Nothing 		-> (throw Undefined, t, input)
-	Just (Right _)	-> (throw Type, t, input)
-	Just (Left x) 	-> (Right [x], t, input)
+interpretCommand (SymTable l) input (Print id) = case lookup id l of
+	Nothing 		-> (throw Undefined, SymTable l, input)
+	Just (Right _)	-> (throw Type, SymTable l, input)
+	Just (Left x) 	-> (Right [x], SymTable l, input)
 
 interpretCommand t1 input (Assign id expr) = case evaluate t1 expr of
 	Left error 	-> (Left error, t1, input)
@@ -241,28 +221,37 @@ interpretProgram input commands = result
 	where
 		(result, _, _) = interpretCommand (SymTable []) input commands
 
-{-
-getProgram :: IO String
-getProgram = readFile "./programhs.txt"
+readProgram :: Read a => IO (Command a)
+readProgram = do
+	h <- (openFile "./programhs.txt") ReadMode
+	l <- hGetLine h
+	let c = (read l)
+	hClose h
+	return c
 
-readProgram :: Read a => Int -> IO (Command a)
-readProgram 0 = do
-	l <- getProgram
-	return (read l :: Command Int)
---readProgram 0 = (getProgram >>= read)::IO (Command Int)
---readProgram 1 = getProgram >>= read::IO (Command Double)
+execute :: (Show a, Num a, Ord a, Random a) => (Command a) -> Int -> Int -> IO ()
+execute program typeExec seed = putStrLn (show (interpretProgram ([]++(randoms (mkStdGen seed))) program))
 
 main = do
+	putStrLn("Select the data type:")
+	putStrLn("   0 : Int")
+	putStrLn("   1 : Double")
 	l <- getLine
 	let typeOption = read l
-	program <- readProgram (typeOption)
-	print program
--}
-
-test :: Command a
-test = (Input "hola")::Command Int
-
-{-
+	putStrLn("Insert a random seed:")
+	l <- getLine
+	let seed = read l
+	putStrLn("Insert the execution type:")
+	l <- getLine
+	let typeExec = read l
+	if typeOption == 0
+		then do 
+			program <- readProgram::IO (Command Int)
+			execute program typeExec seed
+		else do
+			program <- readProgram::IO (Command Double)
+			execute program typeExec seed
+{-}
 getProgram :: Read a => Int -> String -> IO (Command a)
 getProgram 0 l = return (read(l)::Command Int)
 
