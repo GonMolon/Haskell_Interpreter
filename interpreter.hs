@@ -208,18 +208,16 @@ interpretCommand t1 input (Pop p id) = case getStack t1 p of
 
 interpretCommand t1 input (Size id1 id2) = case getStack t1 id1 of
 	Left error 	-> (Left error, t1, input)
-	Right p 	-> case setValue t1 id2 (Left (length p)) of
+	Right p 	-> case setValue t1 id2 (Left (fromInteger (toInteger(length p)))) of
 		Left error 	-> (Left error, t1, input)
 		Right t2 	-> (Right [], t2, input)
-	where
-		length :: Num a => [a] -> a
-		length [] = 0
-		length (x:xs) = 1 + length xs
 
 interpretProgram :: (Num a, Ord a) => [a] -> Command a -> (Either String [a])
 interpretProgram input commands = result
 	where
 		(result, _, _) = interpretCommand (SymTable []) input commands
+
+-------------------------------------------------------------------------------------------------------------
 
 readProgram :: Read a => IO (Command a)
 readProgram = do
@@ -248,9 +246,9 @@ i_executeTests program i k seed = do
 	where
 		testNum = (k - i + 1)
 		getInput :: Eq a => [a] -> [a] -> [a]
-		getInput (i:is) unread@(u:us)
-			| i == u 	= []
-			| otherwise = (i:(getInput is unread))
+		getInput (x:xs) unread@(u:us)
+			| x == u 	= []
+			| otherwise = (x:(getInput xs unread))
 
 executeTests p k seed = i_executeTests p k k seed
 
@@ -268,7 +266,6 @@ execute program 2 seed = do
 	l <- getLine
 	let k = read l
 	executeTests program k seed
-
 
 main = do
 	putStrLn ("Select the data type:")
@@ -292,3 +289,5 @@ main = do
 		else do
 			program <- readProgram::IO (Command Double)
 			(execute program execType seed) >>= putStrLn
+
+

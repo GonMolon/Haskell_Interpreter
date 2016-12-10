@@ -216,39 +216,3 @@ expr: termBool ((AND^ | OR^) termBool)*;
 termBool: (NOT^ termBool) | (termNum ((BIGGER^ | EQUAL^) termNum)*);
 termNum: operand ((SUM^ | MINUS^ | MULT^) operand)*;
 operand: NUM | ID;
-
-
-/*
-INPUT X
-INPUT Y
-IF X > 0 OR X = 0 OR NOT 0 > Y THEN
-    Z := 1
-    WHILE X > Y DO
-        X := X - 1
-        Z := Z * Z
-    END
-ELSE
-    Z := 0
-END 
-PRINT Z
-*/
-
-/*
-INPUT X
-EMPTY P
-WHILE X > 0 OR X = 0
-DO
-  INPUT Y
-  PUSH P Y
-  X := X - 1
-END
-S := 0
-SIZE P L
-WHILE L > 0
-DO
-  POP P Y
-  S := S + Y
-  L := L - 1
-END
-PRINT S
-*/
