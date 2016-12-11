@@ -1,0 +1,1 @@
+(Seq [(Input ("X")), (Cond (Eq (Var "X")(Const 0))(Seq [(Print (Const 10000))])(Seq [(Print (Const 20000))])), (Print (Var "X")), (Cond (Eq (Var "X")(Const 0))(Seq [(Print (Const 30))])(Seq []))])

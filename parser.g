@@ -157,7 +157,12 @@ void print(AST* a) {
         cout << "Cond ";
         printExpr(child(a, 0));
         print(child(a, 1));
-        print(child(a, 2));
+        AST* aux = child(a, 2);
+        if(aux != NULL) {
+            print(child(a, 2));
+        } else {
+            cout << "(Seq [])";
+        }
     } else if(a->kind == "ID") {
         cout << "\"" << a->text << "\"";
     }
@@ -210,7 +215,7 @@ push: PUSH^ ID termNum;
 size: SIZE^ ID ID;
 assign: ID ASSIGN^ expr;
 whileLoop: WHILE^ expr DO! ops END!;
-ifCond: IF^ expr THEN! ops ELSE! ops END!;
+ifCond: IF^ expr THEN! ops ((ELSE! ops) | ) END!;
 
 expr: termBool ((AND^ | OR^) termBool)*;
 termBool: (NOT^ termBool) | (termNum ((BIGGER^ | EQUAL^) termNum)*);
