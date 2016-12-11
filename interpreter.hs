@@ -208,7 +208,7 @@ interpretCommand t1 input (Pop p id) = case getStack t1 p of
 
 interpretCommand t1 input (Size id1 id2) = case getStack t1 id1 of
 	Left error 	-> (Left error, t1, input)
-	Right p 	-> case setValue t1 id2 (Left (fromInteger (toInteger(length p)))) of
+	Right p 	-> case setValue t1 id2 (Left ((fromIntegral . length) p)) of
 		Left error 	-> (Left error, t1, input)
 		Right t2 	-> (Right [], t2, input)
 
