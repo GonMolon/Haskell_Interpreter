@@ -289,5 +289,3 @@ main = do
 		else do
 			program <- readProgram::IO (Command Double)
 			(execute program execType seed) >>= putStrLn
-
-
